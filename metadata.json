@@ -1,0 +1,8 @@
+{
+  "name": "ScrapKart AI Assistant",
+  "description": "An AI-powered assistant for ScrapKart users and collectors, featuring image editing, chat, real-time information, and live voice support.",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation"
+  ]
+}
