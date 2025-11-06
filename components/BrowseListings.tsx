@@ -1,20 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View } from '../App';
 import { getListings, updateListingStatus } from '../services/firestoreService';
-import { Listing } from '../types';
+import { Listing, View, ListingFilter, User } from '../types';
 import Spinner from './Spinner';
 import CheckoutModal from './CheckoutModal';
-import { Tag, Weight, MapPin, CheckCircle, Info } from 'lucide-react';
-
-// Mock user type
-type User = {
-    uid: string;
-    email: string | null;
-};
+import { Tag, Weight, MapPin, CheckCircle, Info, Search } from 'lucide-react';
 
 interface BrowseListingsProps {
-    setView: (view: View) => void;
+    onNavigate: (view: View, filter?: ListingFilter) => void;
     user: User | null;
+    filter: ListingFilter;
 }
 
 const ListingCard: React.FC<{ listing: Listing; onBuyNow: (listing: Listing) => void; currentUser: User | null; }> = ({ listing, onBuyNow, currentUser }) => {
@@ -71,8 +65,10 @@ const ListingCard: React.FC<{ listing: Listing; onBuyNow: (listing: Listing) => 
     );
 }
 
-const BrowseListings: React.FC<BrowseListingsProps> = ({ setView, user }) => {
-    const [listings, setListings] = useState<Listing[]>([]);
+const BrowseListings: React.FC<BrowseListingsProps> = ({ onNavigate, user, filter }) => {
+    const [allListings, setAllListings] = useState<Listing[]>([]);
+    const [displayListings, setDisplayListings] = useState<Listing[]>([]);
+    const [locationQuery, setLocationQuery] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -83,7 +79,17 @@ const BrowseListings: React.FC<BrowseListingsProps> = ({ setView, user }) => {
             try {
                 setLoading(true);
                 const fetchedListings = await getListings();
-                setListings(fetchedListings);
+                
+                let baseList = fetchedListings;
+                if (filter === 'my-listings') {
+                    baseList = fetchedListings.filter(l => l.sellerId === user?.uid);
+                } else if (filter === 'my-purchases') {
+                    baseList = fetchedListings.filter(l => l.buyerId === user?.uid);
+                }
+                
+                setAllListings(baseList);
+                setDisplayListings(baseList);
+                setLocationQuery(''); // Reset search on filter change
             } catch (err) {
                 setError("Failed to load listings. Please try again later.");
             } finally {
@@ -92,11 +98,34 @@ const BrowseListings: React.FC<BrowseListingsProps> = ({ setView, user }) => {
         };
 
         fetchListings();
-    }, []);
+    }, [filter, user?.uid]);
     
+    const handleLocationSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!locationQuery.trim()) {
+            setDisplayListings(allListings);
+            return;
+        }
+        const lowerCaseQuery = locationQuery.toLowerCase();
+        const filtered = allListings.filter(listing => 
+            listing.addressString.toLowerCase().includes(lowerCaseQuery)
+        );
+        setDisplayListings(filtered);
+    };
+
+    const clearSearch = () => {
+        setLocationQuery('');
+        setDisplayListings(allListings);
+    };
+
+    const getPageTitle = () => {
+        if (filter === 'my-listings') return "My Listings";
+        if (filter === 'my-purchases') return "My Purchases";
+        return "Browse Scrap Listings";
+    };
+
     const handleBuyNowClick = (listing: Listing) => {
         if (!user) {
-            // This should ideally not be triggered due to the disabled button, but as a safeguard.
             alert("Please log in to purchase an item.");
             return;
         }
@@ -112,17 +141,14 @@ const BrowseListings: React.FC<BrowseListingsProps> = ({ setView, user }) => {
         try {
             const updatedListing = await updateListingStatus(listingId, 'Sold', user.uid);
             if (updatedListing) {
-                // Update the state locally for instant UI feedback
-                setListings(prevListings =>
-                    prevListings.map(l => l.id === listingId ? updatedListing : l)
-                );
+                setAllListings(prev => prev.map(l => l.id === listingId ? updatedListing : l));
+                setDisplayListings(prev => prev.map(l => l.id === listingId ? updatedListing : l));
             }
             setIsModalOpen(false);
             setSelectedListing(null);
             alert("Purchase successful! The seller has been notified.");
         } catch (err) {
              setError(err instanceof Error ? err.message : "Failed to complete purchase.");
-             // Don't close the modal on error, so the user can see the message.
         }
     };
 
@@ -136,21 +162,60 @@ const BrowseListings: React.FC<BrowseListingsProps> = ({ setView, user }) => {
 
     return (
         <div>
-            <h1 className="text-3xl font-bold mb-6">Browse Scrap Listings</h1>
-            {listings.length === 0 ? (
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                <h1 className="text-3xl font-bold whitespace-nowrap">{getPageTitle()}</h1>
+                {filter !== 'my-purchases' && (
+                     <form onSubmit={handleLocationSearch} className="flex gap-2 w-full sm:w-auto">
+                        <div className="relative flex-grow">
+                           <input
+                                type="text"
+                                value={locationQuery}
+                                onChange={(e) => setLocationQuery(e.target.value)}
+                                placeholder="Enter city or pincode..."
+                                className="w-full sm:w-64 p-2 pl-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md"
+                            />
+                        </div>
+                         <button type="submit" className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
+                            <Search size={18} />
+                        </button>
+                        {locationQuery && (
+                            <button type="button" onClick={clearSearch} className="px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600 transition-colors">
+                                Clear
+                            </button>
+                        )}
+                    </form>
+                )}
+            </div>
+            {displayListings.length === 0 ? (
                 <div className="text-center py-16 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
-                    <h2 className="text-2xl font-semibold">No Listings Found</h2>
-                    <p className="text-gray-600 dark:text-gray-400 mt-2">Be the first to sell! Create a listing today.</p>
-                     <button 
-                        onClick={() => setView('create-listing')}
-                        className="mt-6 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition-colors"
-                    >
-                        Sell Your Scrap
-                    </button>
+                    <h2 className="text-2xl font-semibold">
+                        {locationQuery ? 'No Listings Found For Your Location' : (filter ? 'You have no listings here' : 'No Listings Found')}
+                    </h2>
+                    <p className="text-gray-600 dark:text-gray-400 mt-2">
+                        {locationQuery
+                            ? 'Try a different search, or clear the filter to see all available listings.'
+                            : (filter ? 'Items you buy or sell will appear here.' : 'Be the first to sell! Create a listing today.')
+                        }
+                    </p>
+                    {locationQuery ? (
+                         <button 
+                            onClick={clearSearch}
+                            className="mt-6 px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors"
+                        >
+                            Clear Search
+                        </button>
+                    ) : (
+                        !filter && <button 
+                            onClick={() => onNavigate('create-listing')}
+                            className="mt-6 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition-colors"
+                        >
+                            Sell Your Scrap
+                        </button>
+                    )}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {listings.map(listing => (
+                    {displayListings.map(listing => (
                         <ListingCard key={listing.id} listing={listing} onBuyNow={handleBuyNowClick} currentUser={user} />
                     ))}
                 </div>

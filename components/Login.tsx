@@ -1,12 +1,7 @@
 import React, { useState } from 'react';
 import Spinner from './Spinner';
 import { isFirebaseConfigured } from '../services/firebaseConfig';
-
-// Mock user type
-type User = {
-    uid: string;
-    email: string | null;
-};
+import { User } from '../types';
 
 interface LoginProps {
     onLoginSuccess: (user: User) => void;
@@ -43,7 +38,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             } else {
                 // Mock success if not configured
                 console.log(`${isSigningUp ? 'Signing up' : 'Logging in'} with ${email}... (mocked)`);
-                onLoginSuccess({ uid: `mock_${Date.now()}`, email: email });
+                onLoginSuccess({ uid: `mock_${Date.now()}`, email: email, displayName: email.split('@')[0] });
             }
         } catch (err: any) {
             // In a real app, you'd parse err.code
@@ -64,7 +59,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 // onLoginSuccess(result.user);
              } else {
                  console.log("Signing in with Google... (mocked)");
-                 onLoginSuccess({ uid: `mock_google_${Date.now()}`, email: 'google.user@example.com' });
+                 onLoginSuccess({ uid: `mock_google_${Date.now()}`, email: 'google.user@example.com', displayName: 'Google User' });
              }
         } catch (err: any) {
             setError(err.message || "Failed to sign in with Google.");

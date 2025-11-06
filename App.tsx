@@ -4,20 +4,14 @@ import CreateListing from './components/CreateListing';
 import BrowseListings from './components/BrowseListings';
 import Login from './components/Login';
 import Spinner from './components/Spinner';
-import { ShoppingCart, LogOut, Tag } from 'lucide-react';
+import { ShoppingCart, Tag } from 'lucide-react';
 import { isFirebaseConfigured } from './services/firebaseConfig';
-
-
-// Mock user type, in a real app this would be from the Firebase SDK
-type User = {
-    uid: string;
-    email: string | null;
-};
-
-export type View = 'home' | 'create-listing' | 'browse-listings';
+import ProfileDropdown from './components/ProfileDropdown';
+import { User, View, ListingFilter } from './types';
 
 const App: React.FC = () => {
     const [currentView, setCurrentView] = useState<View>('home');
+    const [listingFilter, setListingFilter] = useState<ListingFilter>(null);
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true); // Simulate checking auth state on load
     const [showConfigWarning, setShowConfigWarning] = useState(false);
@@ -29,7 +23,7 @@ const App: React.FC = () => {
         setLoading(true);
         const unsubscribe = setTimeout(() => {
             // To test the logged-in state, you can manually set a user object here:
-            // setUser({ uid: 'test-user-123', email: 'test@example.com' });
+            // setUser({ uid: 'test-user-123', email: 'test@example.com', displayName: 'Test User' });
             setLoading(false);
         }, 1000); // Simulate auth check delay
 
@@ -40,6 +34,11 @@ const App: React.FC = () => {
         // In a real app: await signOut(auth);
         setUser(null);
         setCurrentView('home');
+    };
+
+    const handleNavigation = (view: View, filter: ListingFilter = null) => {
+        setListingFilter(filter);
+        setCurrentView(view);
     };
 
     const renderContent = () => {
@@ -53,13 +52,13 @@ const App: React.FC = () => {
 
         switch (currentView) {
             case 'home':
-                return <Home setView={setCurrentView} />;
+                return <Home onNavigate={handleNavigation} />;
             case 'create-listing':
-                return <CreateListing setView={setCurrentView} user={user} />;
+                return <CreateListing onNavigate={handleNavigation} user={user} />;
             case 'browse-listings':
-                 return <BrowseListings setView={setCurrentView} user={user} />;
+                 return <BrowseListings onNavigate={handleNavigation} user={user} filter={listingFilter} />;
             default:
-                return <Home setView={setCurrentView} />;
+                return <Home onNavigate={handleNavigation} />;
         }
     };
 
@@ -71,37 +70,35 @@ const App: React.FC = () => {
                     <code className="bg-yellow-300 p-1 rounded">services/firebaseConfig.ts</code> to enable backend features.
                 </div>
             )}
-            <header className="bg-white dark:bg-gray-800/50 shadow-sm sticky top-0 z-10">
+            <header className="bg-white dark:bg-gray-800/50 shadow-sm sticky top-0 z-20">
                 <nav className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                     <div 
                         className="text-2xl font-bold text-green-600 dark:text-green-400 cursor-pointer"
-                        onClick={() => user && setCurrentView('home')}
+                        onClick={() => user && handleNavigation('home')}
                     >
                         ScrapKart
                     </div>
                     {user && (
                         <div className="flex items-center gap-4">
                              <button 
-                                onClick={() => setCurrentView('browse-listings')}
+                                onClick={() => handleNavigation('browse-listings')}
                                 className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                             >
                                 <ShoppingCart size={20} />
                                 Buy
                             </button>
                             <button 
-                                onClick={() => setCurrentView('create-listing')}
+                                onClick={() => handleNavigation('create-listing')}
                                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition-colors"
                             >
                                 <Tag size={16}/>
                                 Sell Scrap
                             </button>
-                             <button 
-                                onClick={handleLogout}
-                                className="p-2 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-                                title="Logout"
-                            >
-                                <LogOut size={20} />
-                            </button>
+                             <ProfileDropdown 
+                                user={user}
+                                onNavigate={handleNavigation}
+                                onLogout={handleLogout}
+                            />
                         </div>
                     )}
                 </nav>

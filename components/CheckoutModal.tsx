@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Listing, Address } from '../types';
+import { Listing, Address, User } from '../types';
 import { getUserAddresses, addUserAddress } from '../services/firestoreService';
 import Spinner from './Spinner';
 import AddressForm from './AddressForm';
 import RazorpaySim from './RazorpaySim';
 import { X, ChevronLeft, ChevronRight, Home, Truck, ShieldCheck, ShoppingCart } from 'lucide-react';
 
-type User = { uid: string; email: string | null; };
 type CheckoutStep = 'address' | 'summary' | 'payment';
 
 interface CheckoutModalProps {

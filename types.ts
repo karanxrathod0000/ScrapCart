@@ -34,3 +34,13 @@ export interface Address {
   state: string;
   pincode: string;
 }
+
+// User and navigation types
+export type User = {
+    uid: string;
+    email: string | null;
+    displayName: string | null;
+};
+
+export type View = 'home' | 'create-listing' | 'browse-listings';
+export type ListingFilter = 'my-listings' | 'my-purchases' | null;

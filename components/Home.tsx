@@ -1,12 +1,13 @@
 import React from 'react';
-import { View } from '../App';
+// Fix: Corrected import path for types.
+import { View, ListingFilter } from '../types';
 import { Tag, Search } from 'lucide-react';
 
 interface HomeProps {
-    setView: (view: View) => void;
+    onNavigate: (view: View, filter?: ListingFilter) => void;
 }
 
-const Home: React.FC<HomeProps> = ({ setView }) => {
+const Home: React.FC<HomeProps> = ({ onNavigate }) => {
     return (
         <div className="text-center py-16">
             <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-5xl md:text-6xl">
@@ -17,14 +18,14 @@ const Home: React.FC<HomeProps> = ({ setView }) => {
             </p>
             <div className="mt-10 max-w-md mx-auto sm:flex sm:justify-center md:mt-12 gap-4">
                 <button
-                    onClick={() => setView('create-listing')}
+                    onClick={() => onNavigate('create-listing')}
                     className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 md:py-4 md:text-lg md:px-10"
                 >
                     <Tag className="mr-2" />
                     Sell Your Scrap
                 </button>
                 <button
-                    onClick={() => setView('browse-listings')}
+                    onClick={() => onNavigate('browse-listings')}
                     className="mt-3 w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 md:py-4 md:text-lg md:px-10 sm:mt-0"
                 >
                     <Search className="mr-2" />

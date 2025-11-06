@@ -1,23 +1,16 @@
 import React, { useState } from 'react';
-import { View } from '../App';
 import { analyzeImageForScrap, enhanceImage, suggestPrice, generateDescription } from '../services/geminiService';
 import { addListing, uploadImage } from '../services/firestoreService';
 import Spinner from './Spinner';
 import { Sparkles, Bot, Upload, Lightbulb } from 'lucide-react';
-import { Listing } from '../types';
-
-// Mock user type
-type User = {
-    uid: string;
-    email: string | null;
-};
+import { Listing, View, ListingFilter, User } from '../types';
 
 interface CreateListingProps {
-    setView: (view: View) => void;
+    onNavigate: (view: View, filter?: ListingFilter) => void;
     user: User;
 }
 
-const CreateListing: React.FC<CreateListingProps> = ({ setView, user }) => {
+const CreateListing: React.FC<CreateListingProps> = ({ onNavigate, user }) => {
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [enhancedImageUrl, setEnhancedImageUrl] = useState<string | null>(null);
@@ -140,7 +133,7 @@ const CreateListing: React.FC<CreateListingProps> = ({ setView, user }) => {
 
             await addListing(newListingData);
             alert("Listing created successfully!");
-            setView('browse-listings');
+            onNavigate('browse-listings');
 
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to create listing.");
@@ -215,21 +208,14 @@ const CreateListing: React.FC<CreateListingProps> = ({ setView, user }) => {
                     </div>
                 </div>
             </div>
-
-            <div className="mt-10 border-t pt-6 flex justify-end gap-4">
-                 <button 
-                    onClick={() => setView('home')}
-                    className="px-8 py-3 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                >
-                    Cancel
-                </button>
-                <button 
+            
+            <div className="mt-10 border-t dark:border-gray-600 pt-6 flex justify-end">
+                <button
                     onClick={handleSubmit}
-                    className="px-8 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition-colors disabled:bg-gray-400 flex items-center gap-2"
-                    disabled={!imageFile || !title || !price || isSubmitting}
+                    disabled={isSubmitting}
+                    className="w-full sm:w-auto text-lg flex items-center justify-center gap-3 py-3 px-12 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-400 transition-colors"
                 >
-                    {isSubmitting && <Spinner className="w-5 h-5" />}
-                    {isSubmitting ? 'Creating...' : 'Create Listing'}
+                    {isSubmitting ? <Spinner /> : 'Create Listing'}
                 </button>
             </div>
         </div>
